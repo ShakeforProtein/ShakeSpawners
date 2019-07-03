@@ -1,0 +1,11 @@
+name: ShakeSpawners
+version: ${project.version}
+main: me.shakeforprotein.shakespawners.ShakeSpawners
+api-version: 1.13
+authors: [ShakeforProtein]
+description: Allows players to break spawners with silk touch.
+website: http://treebo.games
+
+permissions:
+  shakespawners.updatechecker:
+    default: op
