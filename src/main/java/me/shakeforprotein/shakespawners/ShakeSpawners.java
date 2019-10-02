@@ -35,6 +35,7 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(this, this);
         getConfig().set("version", this.getDescription().getVersion());
         uc.getCheckDownloadURL();
+        this.getCommand("sstoggledrop").setExecutor(new CommandSSToggleDrop(this));
     }
 
     @Override
@@ -45,36 +46,39 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onSpawnerBreak(BlockBreakEvent e) {
-        if (e.isCancelled()) {int nothingX = 1;
+        if (e.isCancelled()) {
+            int nothingX = 1;
         } else {
-            if (e.getBlock().getType().equals(Material.SPAWNER)) {
-                if (e.getPlayer().getInventory().getItemInMainHand().containsEnchantment(Enchantment.SILK_TOUCH)) {
-                    if (e.getPlayer().getInventory().getItemInMainHand().getType() == Material.DIAMOND_PICKAXE) {
-                        e.setExpToDrop(0);
-                        ItemStack newBlock = new ItemStack(e.getBlock().getType(), 1);
-                        Location loc = e.getBlock().getLocation();
-                        String mobType = ((CreatureSpawner) e.getBlock().getState()).getSpawnedType().name();
-                        CreatureSpawner spawnerBlock = ((CreatureSpawner) e.getBlock().getState());
-                        ItemMeta newBlockItemMeta = newBlock.getItemMeta();
-                        net.minecraft.server.v1_14_R1.ItemStack nmsBlock = CraftItemStack.asNMSCopy(newBlock);
-                        NBTTagCompound nmsCompound = (nmsBlock.hasTag()) ? nmsBlock.getTag() : new NBTTagCompound();
-                        nmsCompound.set("Shake_Spawner_Type", new NBTTagString(mobType));
-                        nmsBlock.setTag(nmsCompound);
+            if (getConfig().getBoolean("settings.dropSpawners")) {
+                if (e.getBlock().getType().equals(Material.SPAWNER)) {
+                    if (e.getPlayer().getInventory().getItemInMainHand().containsEnchantment(Enchantment.SILK_TOUCH)) {
+                        if (e.getPlayer().getInventory().getItemInMainHand().getType() == Material.DIAMOND_PICKAXE) {
+                            e.setExpToDrop(0);
+                            ItemStack newBlock = new ItemStack(e.getBlock().getType(), 1);
+                            Location loc = e.getBlock().getLocation();
+                            String mobType = ((CreatureSpawner) e.getBlock().getState()).getSpawnedType().name();
+                            CreatureSpawner spawnerBlock = ((CreatureSpawner) e.getBlock().getState());
+                            ItemMeta newBlockItemMeta = newBlock.getItemMeta();
+                            net.minecraft.server.v1_14_R1.ItemStack nmsBlock = CraftItemStack.asNMSCopy(newBlock);
+                            NBTTagCompound nmsCompound = (nmsBlock.hasTag()) ? nmsBlock.getTag() : new NBTTagCompound();
+                            nmsCompound.set("Shake_Spawner_Type", new NBTTagString(mobType));
+                            nmsBlock.setTag(nmsCompound);
 
-                        ItemStack newNewBlock = CraftItemStack.asBukkitCopy(nmsBlock);
-                        ItemMeta newItemMeta = newNewBlock.getItemMeta();
-                        List<String> lore = new ArrayList<>();
+                            ItemStack newNewBlock = CraftItemStack.asBukkitCopy(nmsBlock);
+                            ItemMeta newItemMeta = newNewBlock.getItemMeta();
+                            List<String> lore = new ArrayList<>();
 
-                        Set<String> compoundKeys = nmsCompound.getKeys();
-                        for(String item : compoundKeys){
-                            lore.add(ChatColor.stripColor(nmsCompound.get(item).asString()));
+                            Set<String> compoundKeys = nmsCompound.getKeys();
+                            for (String item : compoundKeys) {
+                                lore.add(ChatColor.stripColor(nmsCompound.get(item).asString()));
+                            }
+
+                            newItemMeta.setLore(lore);
+                            newItemMeta.setDisplayName(mobType + " Spawner");
+                            newNewBlock.setItemMeta(newItemMeta);
+
+                            loc.getWorld().dropItem(loc, newNewBlock);
                         }
-
-                        newItemMeta.setLore(lore);
-                        newItemMeta.setDisplayName(mobType + " Spawner");
-                        newNewBlock.setItemMeta(newItemMeta);
-
-                        loc.getWorld().dropItem(loc, newNewBlock);
                     }
                 }
             }
@@ -92,22 +96,19 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
                     BlockState bS = e.getBlockPlaced().getState();
                     ((CreatureSpawner) bS).setSpawnedType(EntityType.valueOf(nmsCompound.getString("Shake_Spawner_Type")));
                     bS.update();
-                }
-                else if(nmsCompound.hasKey("BlockEntityTag")) {
+                } else if (nmsCompound.hasKey("BlockEntityTag")) {
                     BlockState bS = e.getBlockPlaced().getState();
                     NBTBase nbtBase = nmsCompound.get("BlockEntityTag");
                     for (EntityType entityType : EntityType.values()) {
-                        if(nbtBase.asString().toUpperCase().contains("SPAWNDATA:{ID:\"MINECRAFT:ZOMBIE_PIGMAN" + entityType.name().toUpperCase() + "\"}")) {
+                        if (nbtBase.asString().toUpperCase().contains("SPAWNDATA:{ID:\"MINECRAFT:ZOMBIE_PIGMAN" + entityType.name().toUpperCase() + "\"}")) {
                             ((CreatureSpawner) bS).setSpawnedType(EntityType.PIG_ZOMBIE);
                             bS.update();
-                        }
-                        else if(nbtBase.asString().toUpperCase().contains("SPAWNDATA:{ID:\"MINECRAFT:" + entityType.name().toUpperCase() + "\"}")){
+                        } else if (nbtBase.asString().toUpperCase().contains("SPAWNDATA:{ID:\"MINECRAFT:" + entityType.name().toUpperCase() + "\"}")) {
                             ((CreatureSpawner) bS).setSpawnedType(EntityType.valueOf(entityType.name()));
                             bS.update();
                         }
                     }
-                }
-                else{
+                } else {
                     e.getPlayer().sendMessage("Missing appropriate Tag");
                     e.setCancelled(true);
                 }
