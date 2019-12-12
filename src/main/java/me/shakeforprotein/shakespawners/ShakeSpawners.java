@@ -110,6 +110,7 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
                     }
                 } else {
                     e.getPlayer().sendMessage("Missing appropriate Tag");
+
                     e.setCancelled(true);
                 }
             }
