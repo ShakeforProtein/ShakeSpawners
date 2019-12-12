@@ -1,15 +1,14 @@
 package me.shakeforprotein.shakespawners;
 
-import net.minecraft.server.v1_14_R1.NBTBase;
-import net.minecraft.server.v1_14_R1.NBTTagCompound;
-import net.minecraft.server.v1_14_R1.NBTTagString;
+import net.minecraft.server.v1_15_R1.NBTBase;
+import net.minecraft.server.v1_15_R1.NBTTagCompound;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.CreatureSpawner;
-import org.bukkit.craftbukkit.v1_14_R1.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_15_R1.inventory.CraftItemStack;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.EventHandler;
@@ -59,9 +58,10 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
                             String mobType = ((CreatureSpawner) e.getBlock().getState()).getSpawnedType().name();
                             CreatureSpawner spawnerBlock = ((CreatureSpawner) e.getBlock().getState());
                             ItemMeta newBlockItemMeta = newBlock.getItemMeta();
-                            net.minecraft.server.v1_14_R1.ItemStack nmsBlock = CraftItemStack.asNMSCopy(newBlock);
+                            net.minecraft.server.v1_15_R1.ItemStack nmsBlock = CraftItemStack.asNMSCopy(newBlock);
                             NBTTagCompound nmsCompound = (nmsBlock.hasTag()) ? nmsBlock.getTag() : new NBTTagCompound();
-                            nmsCompound.set("Shake_Spawner_Type", new NBTTagString(mobType));
+                            nmsCompound.setString("Shake_Spawner_Typem", mobType);
+                            //nmsCompound.set("Shake_Spawner_Type", new NBTTagString(mobType));
                             nmsBlock.setTag(nmsCompound);
 
                             ItemStack newNewBlock = CraftItemStack.asBukkitCopy(nmsBlock);
@@ -90,7 +90,7 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
         if (e.getBlock().getType().equals(Material.SPAWNER)) {
             Location loc = e.getBlock().getLocation();
             if (e.getBlockPlaced().getType() == Material.SPAWNER) {
-                net.minecraft.server.v1_14_R1.ItemStack nmsBlock = CraftItemStack.asNMSCopy(e.getItemInHand());
+                net.minecraft.server.v1_15_R1.ItemStack nmsBlock = CraftItemStack.asNMSCopy(e.getItemInHand());
                 NBTTagCompound nmsCompound = (nmsBlock.hasTag()) ? nmsBlock.getTag() : new NBTTagCompound();
                 if (nmsCompound.hasKey("Shake_Spawner_Type")) {
                     BlockState bS = e.getBlockPlaced().getState();
@@ -100,7 +100,7 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
                     BlockState bS = e.getBlockPlaced().getState();
                     NBTBase nbtBase = nmsCompound.get("BlockEntityTag");
                     for (EntityType entityType : EntityType.values()) {
-                        if (nbtBase.asString().toUpperCase().contains("SPAWNDATA:{ID:\"MINECRAFT:ZOMBIE_PIGMAN" + entityType.name().toUpperCase() + "\"}")) {
+                        if (nbtBase.asString().toUpperCase().contains("MINECRAFT:ZOMBIE_PIGMAN")) {
                             ((CreatureSpawner) bS).setSpawnedType(EntityType.PIG_ZOMBIE);
                             bS.update();
                         } else if (nbtBase.asString().toUpperCase().contains("SPAWNDATA:{ID:\"MINECRAFT:" + entityType.name().toUpperCase() + "\"}")) {
