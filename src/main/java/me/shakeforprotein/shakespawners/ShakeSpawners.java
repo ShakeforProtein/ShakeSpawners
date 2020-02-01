@@ -1,13 +1,18 @@
 package me.shakeforprotein.shakespawners;
 
+import net.minecraft.server.v1_15_R1.IChatBaseComponent;
 import net.minecraft.server.v1_15_R1.NBTBase;
 import net.minecraft.server.v1_15_R1.NBTTagCompound;
+import net.minecraft.server.v1_15_R1.NBTTagType;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.CreatureSpawner;
+import org.bukkit.craftbukkit.v1_15_R1.block.CraftBlock;
+import org.bukkit.craftbukkit.v1_15_R1.block.CraftBlockEntityState;
+import org.bukkit.craftbukkit.v1_15_R1.block.CraftBlockState;
 import org.bukkit.craftbukkit.v1_15_R1.inventory.CraftItemStack;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
@@ -15,10 +20,15 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.SpawnerSpawnEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.DataOutput;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -32,6 +42,7 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
         // Plugin startup logic
         getLogger().info(" Started Successfully");
         Bukkit.getPluginManager().registerEvents(this, this);
+        Bukkit.getPluginManager().registerEvents(new SlimeSpawner(), this);
         getConfig().set("version", this.getDescription().getVersion());
         uc.getCheckDownloadURL();
         this.getCommand("sstoggledrop").setExecutor(new CommandSSToggleDrop(this));
@@ -60,7 +71,10 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
                             ItemMeta newBlockItemMeta = newBlock.getItemMeta();
                             net.minecraft.server.v1_15_R1.ItemStack nmsBlock = CraftItemStack.asNMSCopy(newBlock);
                             NBTTagCompound nmsCompound = (nmsBlock.hasTag()) ? nmsBlock.getTag() : new NBTTagCompound();
-                            nmsCompound.setString("Shake_Spawner_Typem", mobType);
+                            if(mobType.equalsIgnoreCase("WITHER_SKULL")){
+                                mobType = "SLIME";
+                            }
+                            nmsCompound.setString("Shake_Spawner_Type", mobType);
                             //nmsCompound.set("Shake_Spawner_Type", new NBTTagString(mobType));
                             nmsBlock.setTag(nmsCompound);
 
@@ -94,9 +108,13 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
                 NBTTagCompound nmsCompound = (nmsBlock.hasTag()) ? nmsBlock.getTag() : new NBTTagCompound();
                 if (nmsCompound.hasKey("Shake_Spawner_Type")) {
                     BlockState bS = e.getBlockPlaced().getState();
+                    if(nmsCompound.get("Shake_Spawner_Type").asString().equalsIgnoreCase("slime")){
+                        nmsCompound.setString("Shake_Spawner_Type", "WITHER_SKULL");
+                    }
                     ((CreatureSpawner) bS).setSpawnedType(EntityType.valueOf(nmsCompound.getString("Shake_Spawner_Type")));
                     bS.update();
-                } else if (nmsCompound.hasKey("BlockEntityTag")) {
+                }
+                else if (nmsCompound.hasKey("BlockEntityTag")) {
                     BlockState bS = e.getBlockPlaced().getState();
                     NBTBase nbtBase = nmsCompound.get("BlockEntityTag");
                     for (EntityType entityType : EntityType.values()) {
@@ -106,6 +124,11 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
                         } else if (nbtBase.asString().toUpperCase().contains("SPAWNDATA:{ID:\"MINECRAFT:" + entityType.name().toUpperCase() + "\"}")) {
                             ((CreatureSpawner) bS).setSpawnedType(EntityType.valueOf(entityType.name()));
                             bS.update();
+                        }
+                         if (nbtBase.asString().toUpperCase().contains("MINECRAFT:SLIME")) {
+                                ((CreatureSpawner) bS).setSpawnedType(EntityType.VEX);
+                                bS.update();
+                                Bukkit.broadcastMessage(nbtBase.asString());
                         }
                     }
                 } else {
@@ -117,4 +140,12 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
         }
     }
 
+
+    @EventHandler
+    public void onSpawnerSpawn(SpawnerSpawnEvent e){
+        if(e.getSpawner().getSpawnedType() == EntityType.WITHER_SKULL){
+            e.setCancelled(true);
+            e.getLocation().getWorld().spawnEntity(e.getLocation(), EntityType.SLIME);
+        }
+    }
 }
