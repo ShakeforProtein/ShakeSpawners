@@ -1,9 +1,8 @@
 package me.shakeforprotein.shakespawners;
 
-import net.minecraft.server.v1_15_R1.IChatBaseComponent;
-import net.minecraft.server.v1_15_R1.NBTBase;
-import net.minecraft.server.v1_15_R1.NBTTagCompound;
-import net.minecraft.server.v1_15_R1.NBTTagType;
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.ComponentBuilder;
+import net.minecraft.server.v1_15_R1.*;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -18,6 +17,7 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.SpawnerSpawnEvent;
@@ -55,6 +55,25 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
 
 
     @EventHandler
+    public void onAttempBreak(PlayerInteractEvent e) {
+        Boolean hasSilk = false;
+        if (e.getAction() == Action.LEFT_CLICK_BLOCK) {
+            if (e.getClickedBlock() != null && e.getClickedBlock().getType() == Material.SPAWNER) {
+                if (e.getItem().getType() == Material.DIAMOND_PICKAXE && e.getItem().getEnchantments().size() > 0) {
+                    for (Enchantment ench : e.getItem().getEnchantments().keySet()) {
+                        if (ench.getKey().getKey().equalsIgnoreCase("Silk_Touch")) {
+                            hasSilk = true;
+                        }
+                    }
+                }
+                if (!hasSilk) {
+                    e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, new ComponentBuilder(ChatColor.RED + "" + ChatColor.BOLD + "You MUST use a SILK TOUCH DIAMOND PICKAXE if you wish to harvest this block.").create());
+                }
+            }
+        }
+    }
+
+    @EventHandler
     public void onSpawnerBreak(BlockBreakEvent e) {
         if (e.isCancelled()) {
             int nothingX = 1;
@@ -71,7 +90,7 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
                             ItemMeta newBlockItemMeta = newBlock.getItemMeta();
                             net.minecraft.server.v1_15_R1.ItemStack nmsBlock = CraftItemStack.asNMSCopy(newBlock);
                             NBTTagCompound nmsCompound = (nmsBlock.hasTag()) ? nmsBlock.getTag() : new NBTTagCompound();
-                            if(mobType.equalsIgnoreCase("WITHER_SKULL")){
+                            if (mobType.equalsIgnoreCase("WITHER_SKULL")) {
                                 mobType = "SLIME";
                             }
                             nmsCompound.setString("Shake_Spawner_Type", mobType);
@@ -108,13 +127,12 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
                 NBTTagCompound nmsCompound = (nmsBlock.hasTag()) ? nmsBlock.getTag() : new NBTTagCompound();
                 if (nmsCompound.hasKey("Shake_Spawner_Type")) {
                     BlockState bS = e.getBlockPlaced().getState();
-                    if(nmsCompound.get("Shake_Spawner_Type").asString().equalsIgnoreCase("slime")){
+                    if (nmsCompound.get("Shake_Spawner_Type").asString().equalsIgnoreCase("slime")) {
                         nmsCompound.setString("Shake_Spawner_Type", "WITHER_SKULL");
                     }
                     ((CreatureSpawner) bS).setSpawnedType(EntityType.valueOf(nmsCompound.getString("Shake_Spawner_Type")));
                     bS.update();
-                }
-                else if (nmsCompound.hasKey("BlockEntityTag")) {
+                } else if (nmsCompound.hasKey("BlockEntityTag")) {
                     BlockState bS = e.getBlockPlaced().getState();
                     NBTBase nbtBase = nmsCompound.get("BlockEntityTag");
                     for (EntityType entityType : EntityType.values()) {
@@ -125,10 +143,10 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
                             ((CreatureSpawner) bS).setSpawnedType(EntityType.valueOf(entityType.name()));
                             bS.update();
                         }
-                         if (nbtBase.asString().toUpperCase().contains("MINECRAFT:SLIME")) {
-                                ((CreatureSpawner) bS).setSpawnedType(EntityType.VEX);
-                                bS.update();
-                                Bukkit.broadcastMessage(nbtBase.asString());
+                        if (nbtBase.asString().toUpperCase().contains("MINECRAFT:SLIME")) {
+                            ((CreatureSpawner) bS).setSpawnedType(EntityType.VEX);
+                            bS.update();
+                            Bukkit.broadcastMessage(nbtBase.asString());
                         }
                     }
                 } else {
@@ -142,8 +160,8 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
 
 
     @EventHandler
-    public void onSpawnerSpawn(SpawnerSpawnEvent e){
-        if(e.getSpawner().getSpawnedType() == EntityType.WITHER_SKULL){
+    public void onSpawnerSpawn(SpawnerSpawnEvent e) {
+        if (e.getSpawner().getSpawnedType() == EntityType.WITHER_SKULL) {
             e.setCancelled(true);
             e.getLocation().getWorld().spawnEntity(e.getLocation(), EntityType.SLIME);
         }
