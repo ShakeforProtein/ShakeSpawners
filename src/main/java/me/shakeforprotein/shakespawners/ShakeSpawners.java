@@ -31,13 +31,13 @@ import java.util.Set;
 public final class ShakeSpawners extends JavaPlugin implements Listener {
 
     private UpdateChecker uc = new UpdateChecker(this);
+    private ArrayList<Location> spawnerList = new ArrayList<Location>();
 
     @Override
     public void onEnable() {
         // Plugin startup logic
         getLogger().info(" Started Successfully");
         Bukkit.getPluginManager().registerEvents(this, this);
-        Bukkit.getPluginManager().registerEvents(new SlimeSpawner(), this);
         getConfig().set("version", this.getDescription().getVersion());
         uc.getCheckDownloadURL();
         this.getCommand("sstoggledrop").setExecutor(new CommandSSToggleDrop(this));
@@ -87,8 +87,7 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
                             NBTTagCompound nmsCompound = (nmsBlock.hasTag()) ? nmsBlock.getTag() : new NBTTagCompound();
                             if (mobType.equalsIgnoreCase("WITHER_SKULL")) {
                                 mobType = "SLIME";
-                            }
-                            else if (mobType.equalsIgnoreCase("SNOWBALL")) {
+                            } else if (mobType.equalsIgnoreCase("SNOWBALL")) {
                                 mobType = "SQUID";
                             }
                             nmsCompound.setString("Shake_Spawner_Type", mobType);
@@ -128,7 +127,7 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
                     if (nmsCompound.get("Shake_Spawner_Type").asString().equalsIgnoreCase("slime") || (nmsCompound.get("BlockEntityTag") != null && nmsCompound.get("BlockEntityTag").asString().contains("id:\"minecraft:slime\""))) {
                         nmsCompound.setString("Shake_Spawner_Type", "WITHER_SKULL");
                     }
-                    if (nmsCompound.get("Shake_Spawner_Type").asString().equalsIgnoreCase("squid")  || (nmsCompound.get("BlockEntityTag") != null && nmsCompound.get("BlockEntityTag").asString().contains("id:\"minecraft:squid\""))) {
+                    if (nmsCompound.get("Shake_Spawner_Type").asString().equalsIgnoreCase("squid") || (nmsCompound.get("BlockEntityTag") != null && nmsCompound.get("BlockEntityTag").asString().contains("id:\"minecraft:squid\""))) {
                         nmsCompound.setString("Shake_Spawner_Type", "SNOWBALL");
                     }
                     ((CreatureSpawner) bS).setSpawnedType(EntityType.valueOf(nmsCompound.getString("Shake_Spawner_Type")));
@@ -147,8 +146,7 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
                         if (nbtBase.asString().toUpperCase().contains("MINECRAFT:SLIME")) {
                             ((CreatureSpawner) bS).setSpawnedType(EntityType.WITHER_SKULL);
                             bS.update();
-                        }
-                        else if (nbtBase.asString().toUpperCase().contains("MINECRAFT:SQUID")) {
+                        } else if (nbtBase.asString().toUpperCase().contains("MINECRAFT:SQUID")) {
                             ((CreatureSpawner) bS).setSpawnedType(EntityType.SNOWBALL);
                             bS.update();
                         }
@@ -167,11 +165,28 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
     public void onSpawnerSpawn(SpawnerSpawnEvent e) {
         if (e.getSpawner().getSpawnedType() == EntityType.WITHER_SKULL) {
             e.setCancelled(true);
-            e.getLocation().getWorld().spawnEntity(e.getLocation(), EntityType.SLIME);
-        }
-        else if (e.getSpawner().getSpawnedType() == EntityType.SNOWBALL) {
+            if (!spawnerList.contains(e.getSpawner().getLocation())) {
+                spawnerList.add(e.getSpawner().getLocation());
+                e.getLocation().getWorld().spawnEntity(e.getLocation(), EntityType.SLIME);
+                Bukkit.getScheduler().runTaskLater(this, new Runnable() {
+                    @Override
+                    public void run() {
+                        spawnerList.remove(e.getSpawner().getLocation());
+                    }
+                }, 350L);
+            }
+        } else if (e.getSpawner().getSpawnedType() == EntityType.SNOWBALL) {
             e.setCancelled(true);
-            e.getLocation().getWorld().spawnEntity(e.getLocation(), EntityType.SQUID);
+            if (!spawnerList.contains(e.getSpawner().getLocation())) {
+                spawnerList.add(e.getSpawner().getLocation());
+                e.getLocation().getWorld().spawnEntity(e.getLocation(), EntityType.SQUID);
+                Bukkit.getScheduler().runTaskLater(this, new Runnable() {
+                    @Override
+                    public void run() {
+                        spawnerList.remove(e.getSpawner().getLocation());
+                    }
+                }, 350L);
+            }
         }
     }
 }
