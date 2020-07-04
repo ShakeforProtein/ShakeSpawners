@@ -54,7 +54,7 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
         Boolean hasSilk = false;
         if (e.getAction() == Action.LEFT_CLICK_BLOCK) {
             if (e.getClickedBlock() != null && e.getClickedBlock().getType() == Material.SPAWNER) {
-                if (e.getItem().getType() == Material.DIAMOND_PICKAXE && e.getItem().getEnchantments().size() > 0) {
+                if ((e.getItem().getType() == Material.DIAMOND_PICKAXE || e.getItem().getType() == Material.NETHERITE_PICKAXE) && e.getItem().getEnchantments().size() > 0) {
                     for (Enchantment ench : e.getItem().getEnchantments().keySet()) {
                         if (ench.getKey().getKey().equalsIgnoreCase("Silk_Touch")) {
                             hasSilk = true;
@@ -62,7 +62,7 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
                     }
                 }
                 if (!hasSilk) {
-                    e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, new ComponentBuilder(ChatColor.RED + "" + ChatColor.BOLD + "You MUST use a SILK TOUCH DIAMOND PICKAXE if you wish to harvest this block.").create());
+                    e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, new ComponentBuilder(ChatColor.RED + "" + ChatColor.BOLD + "You MUST use a SILK TOUCH DIAMOND/NETHERITE PICKAXE if you wish to harvest this block.").create());
                 }
             }
         }
@@ -136,7 +136,7 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
                     BlockState bS = e.getBlockPlaced().getState();
                     NBTBase nbtBase = nmsCompound.get("BlockEntityTag");
                     for (EntityType entityType : EntityType.values()) {
-                        if (nbtBase.asString().toUpperCase().contains("MINECRAFT:ZOMBIE_PIGMAN")) {
+                        if (nbtBase.asString().toUpperCase().contains("MINECRAFT:ZOMBIE_PIGMAN") || nbtBase.asString().toUpperCase().contains("MINECRAFT:ZOMBIFIED_PIGLIN")) {
                             ((CreatureSpawner) bS).setSpawnedType(EntityType.ZOMBIFIED_PIGLIN);
                             bS.update();
                         } else if (nbtBase.asString().toUpperCase().contains("SPAWNDATA:{ID:\"MINECRAFT:" + entityType.name().toUpperCase() + "\"}")) {
