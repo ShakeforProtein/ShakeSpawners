@@ -54,12 +54,8 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
         Boolean hasSilk = false;
         if (e.getAction() == Action.LEFT_CLICK_BLOCK) {
             if (e.getClickedBlock() != null && e.getClickedBlock().getType() == Material.SPAWNER) {
-                if ((e.getItem().getType() == Material.DIAMOND_PICKAXE || e.getItem().getType() == Material.NETHERITE_PICKAXE) && e.getItem().getEnchantments().size() > 0) {
-                    for (Enchantment ench : e.getItem().getEnchantments().keySet()) {
-                        if (ench.getKey().getKey().equalsIgnoreCase("Silk_Touch")) {
-                            hasSilk = true;
-                        }
-                    }
+                if ((e.getItem().getType() == Material.DIAMOND_PICKAXE || e.getItem().getType() == Material.NETHERITE_PICKAXE) && e.getItem().hasItemMeta() && e.getItem().getItemMeta().hasEnchants() && e.getItem().getItemMeta().hasEnchant(Enchantment.SILK_TOUCH)) {
+                    hasSilk = true;
                 }
                 if (!hasSilk) {
                     e.getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, new ComponentBuilder(ChatColor.RED + "" + ChatColor.BOLD + "You MUST use a SILK TOUCH DIAMOND/NETHERITE PICKAXE if you wish to harvest this block.").create());
@@ -76,7 +72,7 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
             if (getConfig().getBoolean("settings.dropSpawners")) {
                 if (e.getBlock().getType().equals(Material.SPAWNER)) {
                     if (e.getPlayer().getInventory().getItemInMainHand().containsEnchantment(Enchantment.SILK_TOUCH)) {
-                        if (e.getPlayer().getInventory().getItemInMainHand().getType() == Material.DIAMOND_PICKAXE) {
+                        if (e.getPlayer().getInventory().getItemInMainHand().getType() == Material.DIAMOND_PICKAXE || e.getPlayer().getInventory().getItemInMainHand().getType() == Material.NETHERITE_PICKAXE) {
                             e.setExpToDrop(0);
                             ItemStack newBlock = new ItemStack(e.getBlock().getType(), 1);
                             Location loc = e.getBlock().getLocation();
