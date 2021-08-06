@@ -1,46 +1,64 @@
 package me.shakeforprotein.shakespawners;
 
+import me.shakeforprotein.treeboroots.TreeboRoots;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.ComponentBuilder;
-import net.minecraft.server.v1_16_R1.NBTBase;
-import net.minecraft.server.v1_16_R1.NBTTagCompound;
+import net.minecraft.nbt.NBTBase;
+import net.minecraft.nbt.NBTTagCompound;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.CreatureSpawner;
-import org.bukkit.craftbukkit.v1_16_R1.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_17_R1.inventory.CraftItemStack;
 import org.bukkit.enchantments.Enchantment;
-import org.bukkit.entity.EntityType;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.SpawnerSpawnEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public final class ShakeSpawners extends JavaPlugin implements Listener {
 
-    private UpdateChecker uc = new UpdateChecker(this);
+    private TreeboRoots roots;
     private ArrayList<Location> spawnerList = new ArrayList<Location>();
+    private Random random = new Random();
 
     @Override
     public void onEnable() {
         // Plugin startup logic
-        getLogger().info(" Started Successfully");
-        Bukkit.getPluginManager().registerEvents(this, this);
-        getConfig().set("version", this.getDescription().getVersion());
-        uc.getCheckDownloadURL();
-        this.getCommand("sstoggledrop").setExecutor(new CommandSSToggleDrop(this));
+        if (Bukkit.getPluginManager().getPlugin("TreeboRoots") != null) {
+            if (Bukkit.getPluginManager().getPlugin("TreeboRoots").isEnabled()){
+                doStartupRoutine();
+            } else {
+                getLogger().warning("Shake Spawners has delayed enabling due to dependency 'TreeboRoots' not being enabled.");
+                Bukkit.getScheduler().runTaskLater(this, ()->{
+                    if(Bukkit.getPluginManager().getPlugin("TreeboRoots").isEnabled()){
+                        doStartupRoutine();
+                    }
+                    else{
+                        getLogger().warning("Shake Spawners has been disabled due to disabled dependency 'TreeboRoots'");
+                        Bukkit.getPluginManager().disablePlugin(this);
+                    }
+                }, 100L);
+            }
+        } else {
+            Bukkit.getLogger().warning("Shake Spawners has been disabled due to missing dependency 'TreeboRoots'");
+            Bukkit.getPluginManager().disablePlugin(this);
+        }
+
     }
 
     @Override
@@ -48,7 +66,14 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
         // Plugin shutdown logic
     }
 
-
+    private void doStartupRoutine(){
+        roots = (TreeboRoots) Bukkit.getPluginManager().getPlugin("TreeboRoots");
+        getLogger().info(" Started Successfully");
+        Bukkit.getPluginManager().registerEvents(this, this);
+        getConfig().set("version", this.getDescription().getVersion());
+        this.getCommand("sstoggledrop").setExecutor(new CommandSSToggleDrop(this));
+        roots.updateHandler.registerPlugin(this, "TreeboMC", "ShakeSpawners", Material.SPAWNER);
+    }
     @EventHandler
     public void onAttempBreak(PlayerInteractEvent e) {
         Boolean hasSilk = false;
@@ -79,7 +104,7 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
                             String mobType = ((CreatureSpawner) e.getBlock().getState()).getSpawnedType().name();
                             CreatureSpawner spawnerBlock = ((CreatureSpawner) e.getBlock().getState());
                             ItemMeta newBlockItemMeta = newBlock.getItemMeta();
-                            net.minecraft.server.v1_16_R1.ItemStack nmsBlock = CraftItemStack.asNMSCopy(newBlock);
+                            net.minecraft.world.item.ItemStack nmsBlock = CraftItemStack.asNMSCopy(newBlock);
                             NBTTagCompound nmsCompound = (nmsBlock.hasTag()) ? nmsBlock.getTag() : new NBTTagCompound();
                             if (mobType.equalsIgnoreCase("WITHER_SKULL")) {
                                 mobType = "SLIME";
@@ -116,7 +141,7 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
         if (e.getBlock().getType().equals(Material.SPAWNER)) {
             Location loc = e.getBlock().getLocation();
             if (e.getBlockPlaced().getType() == Material.SPAWNER) {
-                net.minecraft.server.v1_16_R1.ItemStack nmsBlock = CraftItemStack.asNMSCopy(e.getItemInHand());
+                net.minecraft.world.item.ItemStack nmsBlock = CraftItemStack.asNMSCopy(e.getItemInHand());
                 NBTTagCompound nmsCompound = (nmsBlock.hasTag()) ? nmsBlock.getTag() : new NBTTagCompound();
                 if (nmsCompound.hasKey("Shake_Spawner_Type")) {
                     BlockState bS = e.getBlockPlaced().getState();
@@ -157,7 +182,7 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
     }
 
 
-    @EventHandler
+    @EventHandler (priority = EventPriority.HIGHEST)
     public void onSpawnerSpawn(SpawnerSpawnEvent e) {
         if (e.getSpawner().getSpawnedType() == EntityType.WITHER_SKULL) {
             e.setCancelled(true);
@@ -182,6 +207,32 @@ public final class ShakeSpawners extends JavaPlugin implements Listener {
                         spawnerList.remove(e.getSpawner().getLocation());
                     }
                 }, 350L);
+            }
+        }
+        if(!e.isCancelled()){
+            Entity spawned = e.getEntity();
+            EntityType sType = spawned.getType();
+            if(spawned instanceof Creature && (spawned instanceof Monster || (sType == EntityType.IRON_GOLEM || sType == EntityType.SLIME || sType == EntityType.MAGMA_CUBE)) && sType != EntityType.BLAZE) {
+                int count = 0;
+                for (Entity ent : spawned.getNearbyEntities(9, 3, 9)) {
+                    if (ent.getType() == sType){
+                        count++;
+                    }
+                }
+                if(count>=3) {
+                    for(Player player : e.getEntity().getWorld().getPlayers()){
+                        ((Creature) spawned).setHealth(1);
+                        Bukkit.getScheduler().runTaskLater(this, new Runnable() {
+                            @Override
+                            public void run() {
+                                new EntityDamageByEntityEvent(player, spawned, EntityDamageEvent.DamageCause.ENTITY_ATTACK, 5);
+                                ((Creature) spawned).damage(5);
+                            }
+                        }, 1L);
+                        break;
+                    }
+
+                }
             }
         }
     }
